@@ -12,7 +12,7 @@ export const addProduct = async (req, res) => {
     }
     const product = new Product({ name, type, sku, image_url, description, quantity, price });
     await product.save();
-    res.status(201).json({ message: 'Product added successfully.', productId: product._id });
+    res.status(201).json({ message: 'Product added successfully.', product });
   } catch (error) {
     res.status(500).json({ message: 'Server error.' });
   }

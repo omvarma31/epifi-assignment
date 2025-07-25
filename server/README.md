@@ -4,7 +4,7 @@ This is the backend server for the Inventory Management Tool, built with Node.js
 
 ## Features
 - User registration and login (JWT-based authentication)
-- Add, update, and list products
+- Add and list products
 - Paginated product listing
 - OpenAPI/Swagger documentation
 - Postman collection for API testing

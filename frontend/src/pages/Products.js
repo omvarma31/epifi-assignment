@@ -2,11 +2,51 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// Modal component for editing quantity
+function EditQuantityModal({ open, onClose, product, onSave, loading }) {
+  const [quantity, setQuantity] = useState(product?.quantity || 0);
+  useEffect(() => {
+    setQuantity(product?.quantity || 0);
+  }, [product]);
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-gray-900 rounded-2xl p-8 w-full max-w-sm border border-gray-700/60 shadow-2xl">
+        <h2 className="text-xl font-bold text-white mb-4">Edit Quantity</h2>
+        <div className="mb-6">
+          <label className="block text-gray-300 mb-2">Quantity</label>
+          <input
+            type="number"
+            min="0"
+            value={quantity}
+            onChange={e => setQuantity(e.target.value)}
+            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600">Cancel</button>
+          <button
+            onClick={() => onSave(Number(quantity))}
+            className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
+            disabled={loading || quantity === '' || isNaN(quantity) || Number(quantity) < 0}
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -31,6 +71,31 @@ const Products = () => {
       await axios.post(`${process.env.REACT_APP_API_URL}/logout`, {}, { withCredentials: true });
     } catch {}
     navigate('/login');
+  };
+
+  const handleEditClick = (product) => {
+    setEditProduct(product);
+    setEditModalOpen(true);
+    setEditError('');
+  };
+
+  const handleEditSave = async (newQuantity) => {
+    setEditLoading(true);
+    setEditError('');
+    try {
+      const res = await axios.put(
+        `${process.env.REACT_APP_API_URL}/products/${editProduct._id}/quantity`,
+        { quantity: newQuantity },
+        { withCredentials: true }
+      );
+      // Update product in local state
+      setProducts(products => products.map(p => p._id === editProduct._id ? { ...p, quantity: newQuantity } : p));
+      setEditModalOpen(false);
+      setEditProduct(null);
+    } catch (err) {
+      setEditError(err.response?.data?.message || 'Failed to update quantity');
+    }
+    setEditLoading(false);
   };
 
   return (
@@ -187,6 +252,21 @@ const Products = () => {
                     key={product._id} 
                     className="bg-gray-800/40 backdrop-blur-xl rounded-2xl p-6 border border-gray-700/30 hover:border-gray-600/50 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl group"
                   >
+                    {/* Product Image */}
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-40 object-cover rounded-xl mb-4 border border-gray-700/40 bg-gray-900"
+                        onError={e => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150?text=No+Image'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-40 flex items-center justify-center bg-gray-900 rounded-xl mb-4 border border-gray-700/40">
+                        <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                      </div>
+                    )}
                     {/* Product Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="w-12 h-12 bg-gradient-to-r from-violet-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -243,11 +323,11 @@ const Products = () => {
 
                     {/* Action Buttons */}
                     <div className="mt-6 flex space-x-2">
-                      <button className="flex-1 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 text-blue-300 hover:text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 border border-blue-500/30">
+                      <button
+                        className="flex-1 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 text-blue-300 hover:text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 border border-blue-500/30"
+                        onClick={() => handleEditClick(product)}
+                      >
                         Edit
-                      </button>
-                      <button className="flex-1 bg-gradient-to-r from-red-500/20 to-pink-500/20 hover:from-red-500/30 hover:to-pink-500/30 text-red-300 hover:text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 border border-red-500/30">
-                        Delete
                       </button>
                     </div>
                   </div>
@@ -257,6 +337,13 @@ const Products = () => {
           </>
         )}
       </div>
+      <EditQuantityModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        product={editProduct}
+        onSave={handleEditSave}
+        loading={editLoading}
+      />
     </div>
   );
 };
