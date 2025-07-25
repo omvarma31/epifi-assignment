@@ -1,0 +1,148 @@
+openapi: 3.0.0
+info:
+  title: Inventory Management API
+  version: 1.0.0
+  description: API documentation for Inventory Management Backend
+servers:
+  - url: http://localhost:3000/api
+paths:
+  /signup:
+    post:
+      summary: User signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully
+        '409':
+          description: Username already exists
+        '400':
+          description: Missing fields
+  /login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT token and cookie returned
+        '401':
+          description: Invalid credentials
+        '400':
+          description: Missing fields
+  /products:
+    post:
+      summary: Add a new product
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+                - sku
+                - quantity
+                - price
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                sku:
+                  type: string
+                image_url:
+                  type: string
+                description:
+                  type: string
+                quantity:
+                  type: integer
+                price:
+                  type: number
+      responses:
+        '201':
+          description: Product added successfully
+        '409':
+          description: SKU already exists
+        '400':
+          description: Missing fields
+    get:
+      summary: Get products (paginated)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Page size
+      responses:
+        '200':
+          description: List of products
+  /products/{id}/quantity:
+    put:
+      summary: Update product quantity
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+      responses:
+        '200':
+          description: Product quantity updated
+        '404':
+          description: Product not found
+        '400':
+          description: Missing quantity
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
